@@ -1,7 +1,28 @@
+# Dependencias
 node_modules/
+
+# Variables de entorno
 .env
-.env.local
-npm-debug.log
+.env.*
+
+# Archivos de log
+*.log
+npm-debug.log*
+
+# Sistemas operativos
 .DS_Store
 Thumbs.db
 
+# Builds
+dist/
+build/
+
+# Cobertura de pruebas
+coverage/
+
+# Configuración de editores
+.vscode/
+.idea/
+
+# Archivo de ejemplo (sí debe incluirse)
+!.env.example

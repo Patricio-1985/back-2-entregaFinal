@@ -5,12 +5,12 @@ const userSchema = new mongoose.Schema({
   name: String,
   email: { type: String, unique: true },
   password: { type: String, required: true },
-  role: { type: String, default: 'user' },
+  role: { type: String, default: 'user', enum: ['user', 'admin'] },
   resetToken: String,
   resetTokenExpires: Date
 });
 
-// ✅ Sin next() – Mongoose 9+ no lo soporta
+// Middleware para hashear contraseña - Mongoose 9 no usa 'next' en funciones async
 userSchema.pre('save', async function () {
   if (!this.isModified('password')) return;
   const salt = await bcrypt.genSalt(10);
@@ -18,3 +18,4 @@ userSchema.pre('save', async function () {
 });
 
 export default mongoose.models.User || mongoose.model('User', userSchema);
+

@@ -1,26 +1,19 @@
 import { Router } from 'express';
-import { requireRole } from '../middlewares/auth.middleware.js';
-import {   createUser,  getUsers,  getUserById,  updateUser,  deleteUser,
-      getCurrentUser } from '../controllers/user.controller.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
+import * as userController from '../controllers/user.controller.js';
 
 const router = Router();
 
-// Crear usuario
-router.post('/', createUser);
+// Ruta protegida para obtener usuario actual
+router.get('/current', authenticate, userController.getCurrentUser);
 
-// Obtener todos los usuarios (solo admin)
-router.get('/', requireRole('admin'), getUsers);
+// Rutas dinámicas (protegidas)
+router.get('/:id', authenticate, userController.getUserById);
+router.put('/:id', authenticate, userController.updateUser);
+router.delete('/:id', authenticate, userController.deleteUser);
 
-// Obtener un usuario por ID (solo admin)
-router.get('/:id', requireRole('admin'), getUserById);
-
-// Actualizar usuario
-router.put('/:id', updateUser);
-
-// Eliminar usuario (solo admin)
-router.delete('/:id', requireRole('admin'), deleteUser);
-
-// Obtener usuario actual (autenticado)
-router.get('/current', getCurrentUser);
+// Rutas públicas
+router.get('/', userController.getUsers);
+router.post('/', userController.createUser);
 
 export default router;

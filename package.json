@@ -10,7 +10,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "bcrypt": "^6.0.0",
     "dotenv": "^17.3.1",
@@ -21,5 +20,15 @@
     "mongoose": "^9.2.1",
     "nodemailer": "^8.0.1",
     "nodemon": "^3.1.13"
-  }
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Patricio-1985/back-2-entregaFinal.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Patricio-1985/back-2-entregaFinal/issues"
+  },
+  "homepage": "https://github.com/Patricio-1985/back-2-entregaFinal#readme",
+  "description": ""
 }

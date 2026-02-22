@@ -8,6 +8,9 @@ export const createUser = async (req, res) => {
     const safeUser = userDTO(user);
     res.status(201).json(safeUser);
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({ error: 'El email ya está registrado' });
+    }
     res.status(400).json({ error: err.message });
   }
 };
