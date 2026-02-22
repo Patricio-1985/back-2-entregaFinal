@@ -1,6 +1,40 @@
 import User from '../models/user.js';
 import nodemailer from 'nodemailer';
+import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
+
+export const register = async (req, res) => {
+  const { name, email, password } = req.body;
+  try {
+    const user = new User({ name, email, password });
+    await user.save();
+    res.status(201).json({ message: 'Usuario creado' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const login = async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ email }).select('+password');
+    if (!user) return res.status(401).json({ error: 'Email o contraseña inválidos' });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(401).json({ error: 'Email o contraseña inválidos' });
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    res.json({ token });
+  } catch (err) {
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+};
 
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
@@ -8,25 +42,35 @@ export const forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    user.resetToken = token;
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    user.resetToken = resetToken;
     user.resetTokenExpires = Date.now() + 3600000;
     await user.save();
 
+    const testAccount = await nodemailer.createTestAccount();
     const transporter = nodemailer.createTransport({
-      service: 'Gmail',
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+      host: 'smtp.ethereal.email',
+      port: 587,
+      secure: false,
+      auth: {
+        user: testAccount.user,
+        pass: testAccount.pass,
+      },
     });
 
-    const resetUrl = `http://localhost:8080/api/auth/reset-password?token=${token}`;
-    await transporter.sendMail({
-      to: user.email,
-      from: process.env.EMAIL_USER,
+    const resetUrl = `http://localhost:8080/api/auth/reset-password?token=${resetToken}`;
+    const info = await transporter.sendMail({
+      from: '"Soporte" <no-reply@tuapp.com>',
+      to: email,
       subject: 'Recuperación de contraseña',
-      text: `Haz clic aquí para restablecer tu contraseña: ${resetUrl}`
+      text: `Haz clic para restablecer: ${resetUrl}`,
+      html: `<a href="${resetUrl}">Restablecer contraseña</a>`,
     });
 
-    res.json({ message: 'Enlace enviado al correo' });
+    res.json({
+      message: 'Enlace de recuperación generado',
+      previewUrl: nodemailer.getTestMessageUrl(info),
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -34,16 +78,21 @@ export const forgotPassword = async (req, res) => {
 
 export const resetPassword = async (req, res) => {
   const { token, newPassword } = req.body;
+
+  if (!token || !newPassword) {
+    return res.status(400).json({ error: 'Token y nueva contraseña son requeridos' });
+  }
+
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findOne({
-      _id: decoded.id,
       resetToken: token,
-      resetTokenExpires: { $gt: Date.now() }
-    });
+      resetTokenExpires: { $gt: Date.now() },
+    }).select('+password');
 
     if (!user) return res.status(400).json({ error: 'Token inválido o expirado' });
-    if (user.password === newPassword) {
+
+    const isSame = await bcrypt.compare(newPassword, user.password);
+    if (isSame) {
       return res.status(400).json({ error: 'No puedes usar la misma contraseña anterior' });
     }
 
@@ -52,7 +101,7 @@ export const resetPassword = async (req, res) => {
     user.resetTokenExpires = undefined;
     await user.save();
 
-    res.json({ message: 'Contraseña actualizada' });
+    res.json({ message: 'Contraseña actualizada correctamente' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

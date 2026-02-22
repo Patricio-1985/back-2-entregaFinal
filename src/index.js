@@ -3,19 +3,20 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import userRoutes from './routes/user.routes.js';
 import productRoutes from './routes/product.router.js';
-
+import authRoutes from './routes/auth.routes.js'; 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Middleware (DEBE estar ANTES de las rutas)
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Rutas
 app.use('/api/users', userRoutes);
-app.use('/api/products', productRoutes);
+app.use('/api/products', productRoutes); 
+app.use('/api/auth', authRoutes); 
 
 // Conexión a MongoDB y levante del servidor
 mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 5000 })
